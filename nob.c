@@ -27,17 +27,27 @@ int main(int argc, char **argv)
 
   nob_mkdir_if_not_exists(BUILD_FOLDER);
 
-  int rebuild_everything = 0;
   // Rebuild every objects if any .h has been modified
+  int rebuild_everything = 0;
   Nob_File_Paths path = {0};
   nob_read_entire_dir(SOURCE_FOLDER, &path);
   for (int i = 0; i < path.count; i++) {
-    char full_path[512];
-    snprintf(full_path, sizeof(full_path), SOURCE_FOLDER "%s", path.items[i]);
-    if (nob_needs_rebuild1("awqat", full_path)) {
+    // whether if file ext is .h
+    if (!nob_sv_ends_with_cstr(nob_sv_from_cstr(path.items[i]), ".h"))
+      continue;
+
+    Nob_String_Builder full_path = {0};
+    nob_sb_append_cstr(&full_path, SOURCE_FOLDER);
+    nob_sb_append_cstr(&full_path, path.items[i]);
+    nob_sb_append(&full_path, '\0');
+
+    // compare <file>.h against binary
+    if (nob_needs_rebuild1("awqat", full_path.items))
       rebuild_everything = 1;
-      break;
-    }
+
+    nob_sb_free(full_path);
+
+    if (rebuild_everything) break;
   }
 
   // COMPILE
