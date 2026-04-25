@@ -17,6 +17,7 @@ int main(int argc, char **argv)
 
   // COMPILE
   for (size_t i = 0; i < ARRAY_LEN(targets); ++i) {
+    if (!nob_needs_rebuild1(targets[i].obj_path, targets[i].src_path)) continue;
     nob_cc(&cmd);
     nob_cc_flags(&cmd);
     nob_cmd_append(&cmd, "-c");
@@ -26,6 +27,13 @@ int main(int argc, char **argv)
   }
 
   // LINKING
+  int ntarget = sizeof(targets) / sizeof(targets[0]);
+  const char *obj_paths[ntarget];
+  for (int i = 0; i < ntarget; i++) {
+    obj_paths[i] = targets[i].obj_path;
+  }
+
+  if (!nob_needs_rebuild("awqat", obj_paths, ntarget)) return 0;
   nob_cc(&cmd);
   nob_cc_flags(&cmd);
   for (size_t i = 0; i < ARRAY_LEN(targets); ++i) {
