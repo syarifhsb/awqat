@@ -42,8 +42,12 @@ int main(int argc, char **argv)
     nob_sb_append(&full_path, '\0');
 
     // compare <file>.h against binary
-    if (nob_needs_rebuild1("awqat", full_path.items))
+    if (nob_needs_rebuild1("awqat", full_path.items)) {
       rebuild_everything = 1;
+      nob_log(NOB_INFO, 
+          "Header file %s has been updated. Rebuilding everything...",
+          full_path.items);
+    }
 
     nob_sb_free(full_path);
 
