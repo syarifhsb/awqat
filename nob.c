@@ -22,6 +22,7 @@ int main(int argc, char **argv)
     { .obj_path = BUILD_FOLDER"config.o", .src_path = SOURCE_FOLDER"config.c" },
     { .obj_path = BUILD_FOLDER"cJSON.o",  .src_path = SOURCE_FOLDER"cJSON.c" },
     { .obj_path = BUILD_FOLDER"api.o",    .src_path = SOURCE_FOLDER"api.c" },
+    { .obj_path = BUILD_FOLDER"utils.o",  .src_path = SOURCE_FOLDER"utils.c" },
     { .obj_path = BUILD_FOLDER"awqat.o",  .src_path = SOURCE_FOLDER"awqat.c" },
   };
 
