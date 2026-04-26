@@ -20,6 +20,7 @@ int main(int argc, char **argv)
     const char *src_path;
   } targets[] = {
     { .obj_path = BUILD_FOLDER"cJSON.o",  .src_path = SOURCE_FOLDER"cJSON.c" },
+    { .obj_path = BUILD_FOLDER"json.o",   .src_path = SOURCE_FOLDER"json.c" },
     { .obj_path = BUILD_FOLDER"api.o",    .src_path = SOURCE_FOLDER"api.c" },
     { .obj_path = BUILD_FOLDER"utils.o",  .src_path = SOURCE_FOLDER"utils.c" },
     { .obj_path = BUILD_FOLDER"awqat.o",  .src_path = SOURCE_FOLDER"awqat.c" },
@@ -61,6 +62,7 @@ int main(int argc, char **argv)
     nob_cc(&cmd);
     nob_cc_flags(&cmd);
     nob_cmd_append(&cmd, "-c");
+    nob_cmd_append(&cmd, "-ggdb");
     nob_cc_output(&cmd, targets[i].obj_path);
     nob_cc_inputs(&cmd, targets[i].src_path);
     if (!cmd_run(&cmd)) return 1;
