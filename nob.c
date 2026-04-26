@@ -19,7 +19,6 @@ int main(int argc, char **argv)
     const char *obj_path;
     const char *src_path;
   } targets[] = {
-    { .obj_path = BUILD_FOLDER"config.o", .src_path = SOURCE_FOLDER"config.c" },
     { .obj_path = BUILD_FOLDER"cJSON.o",  .src_path = SOURCE_FOLDER"cJSON.c" },
     { .obj_path = BUILD_FOLDER"api.o",    .src_path = SOURCE_FOLDER"api.c" },
     { .obj_path = BUILD_FOLDER"utils.o",  .src_path = SOURCE_FOLDER"utils.c" },
@@ -45,7 +44,7 @@ int main(int argc, char **argv)
     // compare <file>.h against binary
     if (nob_needs_rebuild1("awqat", full_path.items)) {
       rebuild_everything = 1;
-      nob_log(NOB_INFO, 
+      nob_log(NOB_INFO,
           "Header file %s has been updated. Rebuilding everything...",
           full_path.items);
     }
