@@ -20,6 +20,7 @@ typedef struct {
   size_t capacity;
 } Params;
 
-int api_curl_get(const char *main_url, void *cb, const char *path_params, Params *query_params, Nob_String_Builder *response);
+int api_curl_get(const char *main_url, const char *path_params, const Params *query_params, Nob_String_Builder *response);
+Params get_user_coord();
 
 #endif // AWQAT_API_H_
