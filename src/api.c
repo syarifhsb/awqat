@@ -32,9 +32,9 @@ Nob_String_Builder awq_build_url(const char *main_url, const char *path_params, 
   if (query_params) {
     nob_sb_append(&url_sb, '?');
     for (size_t i = 0; i < query_params->count; i++) {
-      nob_sb_append_cstr(&url_sb, query_params->items[i].name);
+      nob_sb_append_sv(&url_sb, nob_sb_to_sv(query_params->items[i].name));
       nob_sb_append(&url_sb, '=');
-      nob_sb_append_cstr(&url_sb, query_params->items[i].value);
+      nob_sb_append_sv(&url_sb, nob_sb_to_sv(query_params->items[i].value));
       nob_sb_append(&url_sb, '&');
     }
   }
@@ -74,16 +74,26 @@ int awq_fetch(const char *main_url, const char *path_params, const Params *query
   return (int)result;
 }
 
-int awq_add_param(Params *params, const char *param_name, const char *param_value) {
-  Param p = { .name = param_name, .value = param_value };
+int awq_add_param(Params *params, const char *name, const char *value) {
+  Param p = {0};
+  nob_sb_append_cstr(&p.name, name);
+  nob_sb_append_cstr(&p.value, value);
   nob_da_append(params, p);
 
   return 0;
 }
 
-Params awq_get_user_coord() {
-  Params params = {0};
+int awq_delete_params(Params *params) {
+  for (size_t i = 0; i < params->count; i++) {
+    nob_sb_free(params->items[i].name);
+    nob_sb_free(params->items[i].value);
+  }
+  nob_da_free(*params);
 
+  return 0;
+}
+
+int awq_get_user_coord(Params *params) {
   Nob_String_Builder resp = {0};
   int result = awq_fetch(IP_API_URL,
       NULL,
@@ -98,18 +108,24 @@ Params awq_get_user_coord() {
   cJSON *data = cJSON_Parse(nob_sb_to_sv(resp).data);
   nob_sb_free(resp);
 
-  cJSON *latitude = cJSON_GetObjectItem (data, "lat");
-  cJSON *longitude = cJSON_GetObjectItem (data, "lon");
+  cJSON *latitude = cJSON_GetObjectItem(data, "lat");
+  cJSON *longitude = cJSON_GetObjectItem(data, "lon");
 
   if (!cJSON_IsNumber(latitude) || !cJSON_IsNumber(longitude)) {
       fprintf(stderr, "failed to parse IP API JSON\n");
       exit(EXIT_FAILURE);
   }
 
-  awq_add_param(&params, "latitude", cJSON_Print(latitude));
-  awq_add_param(&params, "longitude", cJSON_Print(longitude));
+  char *lat_s = cJSON_Print(latitude);
+  char *lon_s = cJSON_Print(longitude);
+
+  awq_add_param(params, "latitude", lat_s);
+  awq_add_param(params, "longitude", lon_s);
+
+  cJSON_free(lat_s);
+  cJSON_free(lon_s);
 
   cJSON_Delete(data);
 
-  return params;
+  return 0;
 }

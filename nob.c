@@ -1,6 +1,8 @@
 #define NOB_IMPLEMENTATION
 #include "nob.h"
 
+// #define DEBUG
+
 #define BUILD_FOLDER  "build/"
 #define SOURCE_FOLDER "src/"
 
@@ -62,6 +64,9 @@ int main(int argc, char **argv)
     nob_cc(&cmd);
     nob_cc_flags(&cmd);
     nob_cmd_append(&cmd, "-c");
+#ifdef DEBUG
+    nob_cmd_append(&cmd, "-ggdb");
+#endif
     nob_cc_output(&cmd, targets[i].obj_path);
     nob_cc_inputs(&cmd, targets[i].src_path);
     if (!cmd_run(&cmd)) return 1;

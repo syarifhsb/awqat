@@ -10,8 +10,8 @@ typedef struct {
 } Response;
 
 typedef struct {
-  const char *name;
-  const char *value;
+  Nob_String_Builder name;
+  Nob_String_Builder value;
 } Param;
 
 typedef struct {
@@ -22,6 +22,10 @@ typedef struct {
 
 int awq_fetch(const char *main_url, const char *path_params, const Params *query_params, Nob_String_Builder *response);
 
-Params awq_get_user_coord();
+int awq_add_param(Params *params, const char *name, const char *value);
+
+int awq_delete_params(Params *params);
+
+int awq_get_user_coord(Params *params);
 
 #endif // AWQAT_API_H_

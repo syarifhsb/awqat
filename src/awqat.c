@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <getopt.h>
 #include <unistd.h>
+#include <stdlib.h>
 #include <curl/curl.h>
 #include "api.h"
 #include "utils.h"
@@ -15,23 +16,34 @@ int awq_show_usage(const char* app_name) {
   printf("Simple Prayer Times CLI\n");
   printf("Use without any option to give prayer times based on your location.\n\n");
   printf("Available options:\n");
-  // printf("  -c, --city     \n");
+  printf("  %-26s%s\n", "-m, --method=METHOD", "Select from the list of methods.");
+  printf("  %-26s%s\n", "", "Methods can be integer or an alias.");
+  printf("\n");
+  printf("Methods:\n");
+  for (size_t i = 0; i < NOB_ARRAY_LEN(methods); i++) {
+    char tmp_buf[32];
+    snprintf(tmp_buf, sizeof(tmp_buf), "%d, %s", methods[i].index, methods[i].alias);
+    printf("  %-26s%s\n", tmp_buf, methods[i].full_name);
+  }
 
   return 0;
 }
 
 int main(int argc, char *argv[]) {
+  Params awq_params = {0};
+
   int c;
 
   while (1) {
     int option_index = 0;
     static struct option long_options[] = {
-      {"help",    no_argument,       0, 'h'},
       {"city",    required_argument, 0, 'c'},
+      {"method",  required_argument, 0, 'm'},
+      {"help",    no_argument,       0, 'h'},
       {0,         0,                 0,  0 }
     };
 
-    c = getopt_long(argc, argv, "hc:",
+    c = getopt_long(argc, argv, "hm:c:",
         long_options, &option_index);
     if (c == -1)
       break;
@@ -49,6 +61,45 @@ int main(int argc, char *argv[]) {
       case 'c':
         printf("option c with value '%s'\n", optarg);
         break;
+
+      case 'm': {
+          Method user_method = {0};
+          int found = 0;
+
+          char *end;
+          long method_l = strtol(optarg, &end, 10);
+
+          for (size_t i = 0; i < NOB_ARRAY_LEN(methods); i++)
+          {
+            if (*end == '\0') {
+              // valid number — match by index
+              if (methods[i].index == method_l) {
+                found = 1;
+                user_method = methods[i];
+                break;
+              }
+            } else {
+              // valid number — match by index
+              if (strcmp(methods[i].alias, optarg) == 0) {
+                found = 1;
+                user_method = methods[i];
+                break;
+              }
+            }
+          }
+
+          if (!found) {
+            fprintf(stderr, "Method %s is not valid.\n", optarg);
+            exit(EXIT_FAILURE);
+          }
+
+          printf("Method chosen: %d-%s.\n", user_method.index, user_method.full_name);
+          char tmp_buf[8];
+          snprintf(tmp_buf, sizeof(tmp_buf), "%d", user_method.index);
+          awq_add_param(&awq_params, "method", tmp_buf);
+
+          break;
+        }
 
       case 'h':
         awq_show_usage(argv[0]);
@@ -82,14 +133,16 @@ int main(int argc, char *argv[]) {
   //   nob_da_append(&awqat_query_params, params[i]);
   // }
 
-  Params user_location = awq_get_user_coord();
+  awq_get_user_coord(&awq_params);
 
   Nob_String_Builder resp = (Nob_String_Builder){0};
   Nob_String_Builder date = get_date_now();
   int result = awq_fetch(ALADHAN_TIMINGS_URL,
       get_date_now().items,
-      &user_location,
+      &awq_params,
       &resp);
+
+  awq_delete_params(&awq_params);
 
   if (result) {
     fprintf(stderr, "[awqat] Something wrong when fetching. Exiting..\n");
