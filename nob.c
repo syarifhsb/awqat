@@ -62,7 +62,6 @@ int main(int argc, char **argv)
     nob_cc(&cmd);
     nob_cc_flags(&cmd);
     nob_cmd_append(&cmd, "-c");
-    nob_cmd_append(&cmd, "-ggdb");
     nob_cc_output(&cmd, targets[i].obj_path);
     nob_cc_inputs(&cmd, targets[i].src_path);
     if (!cmd_run(&cmd)) return 1;
