@@ -111,20 +111,35 @@ int main(int argc, char *argv[]) {
 
   cJSON *timings = awq_json_get_nested(return_json, "data.timings");
   const char *method = awq_json_get_nested(return_json, "data.meta.method.name")->valuestring;
-  // const char *method = method->valuestring;
 
-  const char *fajr    = cJSON_GetObjectItem(timings, "Fajr")->valuestring;
-  const char *dhuhr   = cJSON_GetObjectItem(timings, "Dhuhr")->valuestring;
-  const char *asr     = cJSON_GetObjectItem(timings, "Asr")->valuestring;
-  const char *maghrib = cJSON_GetObjectItem(timings, "Maghrib")->valuestring;
-  const char *isha    = cJSON_GetObjectItem(timings, "Isha")->valuestring;
+  const char *prayer_names[] = {"Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"};
+  const char *prayer_times[NOB_ARRAY_LEN(prayer_names)];
+  int diff[NOB_ARRAY_LEN(prayer_times)];
 
   printf("%-8s: %s\n", "Method", method);
-  printf("%-8s: %s\n", "Fajr", fajr);
-  printf("%-8s: %s\n", "Dhuhr", dhuhr);
-  printf("%-8s: %s\n", "Asr", asr);
-  printf("%-8s: %s\n", "Maghrib", maghrib);
-  printf("%-8s: %s\n", "Isha", isha);
+  Nob_String_Builder now = get_time_now();
+  for (size_t i = 0; i < NOB_ARRAY_LEN(prayer_names); i++) {
+    prayer_times[i] = cJSON_GetObjectItem(timings, prayer_names[i])->valuestring;
+    diff[i] = parse_minutes(prayer_times[i]) - parse_minutes(now.items);
+  }
+  nob_sb_free(now);
+
+  int min = INT_MAX;
+  size_t min_idx = 0;
+
+  for (size_t i = 0; i < NOB_ARRAY_LEN(prayer_names); i++) {
+    if (diff[i] > 0 && diff[i] < min) {
+      min = diff[i];
+      min_idx = i;
+    }
+  }
+
+  for (size_t i = 0; i < NOB_ARRAY_LEN(prayer_names); i++) {
+    if (i == min_idx)
+      printf(BOLD RED "%-8s: %s%s" RESET "\n", prayer_names[i], prayer_times[i], " *");
+    else
+      printf("%-8s: %s\n", prayer_names[i], prayer_times[i]);
+  }
 
   cJSON_Delete(return_json);
 
