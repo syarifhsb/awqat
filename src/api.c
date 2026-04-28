@@ -6,7 +6,6 @@
 #include "cJSON.h"
 
 #include "../nob.h"
-#include "../config.h"
 
 size_t fetch_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
   Nob_String_Builder *resp = (Nob_String_Builder *)userdata;
@@ -59,6 +58,8 @@ int awq_fetch(const char *main_url, const char *path_params, const Params *query
 
   struct curl_slist *headers = NULL;
   headers = curl_slist_append(headers, "Accept-Encoding: application/json");
+  curl_slist_append(headers, "User-Agent: awqat-cli/1.0");
+
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, fetch_write_callback);
 
@@ -93,9 +94,41 @@ int awq_delete_params(Params *params) {
   return 0;
 }
 
-int awq_get_user_coord(Params *params) {
+int awq_get_coord_by_city(Params *params, const char *city, const char *nominatim_url) {
+  Params nominatim_params = {0};
+
+  awq_add_param(&nominatim_params, "city", city);
+  awq_add_param(&nominatim_params, "format", "json");
+  awq_add_param(&nominatim_params, "limit", "1");
+
   Nob_String_Builder resp = {0};
-  int result = awq_fetch(IP_API_URL,
+  int result = awq_fetch(nominatim_url,
+      "search",
+      &nominatim_params,
+      &resp);
+
+  awq_delete_params(&nominatim_params);
+
+  cJSON *return_json = cJSON_Parse(nob_sb_to_sv(resp).data);
+  nob_sb_free(resp);
+
+  cJSON *data;
+  if (cJSON_IsArray(return_json)) {
+    data = cJSON_GetArrayItem(return_json, 0);
+  }
+
+  cJSON *latitude = cJSON_GetObjectItem(data, "lat");
+  cJSON *longitude = cJSON_GetObjectItem(data, "lon");
+
+  awq_add_param(params, "latitude", latitude->valuestring);
+  awq_add_param(params, "longitude", longitude->valuestring);
+
+  return 0;
+}
+
+int awq_get_user_coord(Params *params, const char *ip_api_url) {
+  Nob_String_Builder resp = {0};
+  int result = awq_fetch(ip_api_url,
       NULL,
       NULL,
       &resp);
@@ -116,6 +149,7 @@ int awq_get_user_coord(Params *params) {
       exit(EXIT_FAILURE);
   }
 
+  // TODO: pass value without cJSON_Print
   char *lat_s = cJSON_Print(latitude);
   char *lon_s = cJSON_Print(longitude);
 

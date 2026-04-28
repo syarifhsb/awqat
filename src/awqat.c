@@ -31,6 +31,7 @@ int awq_show_usage(const char* app_name) {
 
 int main(int argc, char *argv[]) {
   Params awq_params = {0};
+  const char *city = NULL;
 
   int c;
 
@@ -59,7 +60,8 @@ int main(int argc, char *argv[]) {
         break;
 
       case 'c':
-        printf("option c with value '%s'\n", optarg);
+        printf("Search by city: %s\n", optarg);
+        city = strdup(optarg);
         break;
 
       case 'm': {
@@ -133,12 +135,16 @@ int main(int argc, char *argv[]) {
   //   nob_da_append(&awqat_query_params, params[i]);
   // }
 
-  awq_get_user_coord(&awq_params);
+
+  if (city)
+    awq_get_coord_by_city(&awq_params, city, NOMINATIM_URL);
+  else
+    awq_get_user_coord(&awq_params, IP_API_URL);
 
   Nob_String_Builder resp = (Nob_String_Builder){0};
   Nob_String_Builder date = get_date_now();
   int result = awq_fetch(ALADHAN_TIMINGS_URL,
-      get_date_now().items,
+      date.items,
       &awq_params,
       &resp);
 

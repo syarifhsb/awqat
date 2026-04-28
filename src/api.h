@@ -26,6 +26,8 @@ int awq_add_param(Params *params, const char *name, const char *value);
 
 int awq_delete_params(Params *params);
 
-int awq_get_user_coord(Params *params);
+int awq_get_user_coord(Params *params, const char *ip_api_url);
+
+int awq_get_coord_by_city(Params *params, const char *city, const char *nominatim_url);
 
 #endif // AWQAT_API_H_
