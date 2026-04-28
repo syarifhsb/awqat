@@ -99,9 +99,9 @@ int awq_process(Main *main_st, cJSON *aladhan_data) {
   nob_sb_append_null(&main_st->method);
 
   for (size_t i = 0; i < NOB_ARRAY_LEN(main_st->prayers); i++) {
-    Time prayer_time = parse_time(cJSON_GetObjectItem(timings, main_st->prayers[i].name)->valuestring);
+    Time prayer_time = awq_parse_time(cJSON_GetObjectItem(timings, main_st->prayers[i].name)->valuestring);
     main_st->prayers[i].time = prayer_time;
-    main_st->prayers[i].diff_now = time_substract(prayer_time, main_st->time_now);
+    main_st->prayers[i].diff_now = awq_time_substract(prayer_time, main_st->time_now);
   }
 
   int min = INT_MAX;
@@ -215,7 +215,7 @@ int main(int argc, char *argv[]) {
 
   Main main_st = {0};
   memcpy(main_st.prayers, prayers, sizeof(prayers));
-  main_st.time_now = get_time_now();
+  main_st.time_now = awq_get_time_now();
 
   if (city)
     main_st.city = awq_get_coord_by_city(&awq_params, city, NOMINATIM_URL, 1);

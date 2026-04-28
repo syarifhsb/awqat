@@ -3,7 +3,7 @@
 #define NOB_IMPLEMENTATION
 #include "../nob.h"
 
-Nob_String_Builder get_date_now() {
+Nob_String_Builder awq_get_date_now() {
   Nob_String_Builder sb = {0};
 
   time_t t = time(NULL);
@@ -13,7 +13,7 @@ Nob_String_Builder get_date_now() {
   return sb;
 }
 
-Time get_time_now() {
+Time awq_get_time_now() {
   Time now = {0};
 
   time_t t = time(NULL);
@@ -27,7 +27,7 @@ Time get_time_now() {
 
 #undef NOB_IMPLEMENTATION
 
-Time parse_time(const char *time) {
+Time awq_parse_time(const char *time) {
   Time t;
   int h, m;
   sscanf(time, "%d:%d", &h, &m);
@@ -38,7 +38,7 @@ Time parse_time(const char *time) {
   return t;
 }
 
-Time time_substract(Time a, Time b) {
+Time awq_time_substract(Time a, Time b) {
   Time t;
 
   t.time_h = a.time_h - b.time_h;

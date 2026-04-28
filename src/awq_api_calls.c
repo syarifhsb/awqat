@@ -7,7 +7,7 @@
 
 cJSON* awq_get_prayer_times(const Params *params, const char *aladhan_api_url) {
   Nob_String_Builder resp = (Nob_String_Builder){0};
-  Nob_String_Builder date = get_date_now();
+  Nob_String_Builder date = awq_get_date_now();
   int result = awq_fetch(aladhan_api_url,
       date.items,
       params,
