@@ -4,9 +4,12 @@
 #include <stdlib.h>
 #include <curl/curl.h>
 #include "api.h"
-#include "utils.h"
-#include "cJSON.h"
 #include "json.h"
+#include "time.h"
+#include "cJSON.h"
+
+// Procedures calls
+#include "awq_api_calls.h"
 
 #include "../config.h"
 #include "../nob.h"
@@ -25,6 +28,84 @@ int awq_show_usage(const char* app_name) {
     snprintf(tmp_buf, sizeof(tmp_buf), "%d, %s", methods[i].index, methods[i].alias);
     printf("  %-26s%s\n", tmp_buf, methods[i].full_name);
   }
+
+  return 0;
+}
+
+#define RESET   "\033[0m"
+#define BOLD    "\033[1m"
+#define RED     "\033[31m"
+#define GREEN   "\033[32m"
+#define YELLOW  "\033[33m"
+#define CYAN    "\033[36m"
+
+typedef struct {
+  const char* name;
+  Time time;
+  Time diff_now;
+} Prayer;
+
+typedef struct {
+  Nob_String_Builder method;
+  Nob_String_Builder city;
+  Time time_now;
+  Prayer *next_prayer;
+  Prayer prayers[5];
+} Main;
+
+int awq_output(Main *main_st) {
+  if (main_st->method.count > 0) {
+    printf("Prayer times calculation method: %s\n", main_st->method.items);
+  }
+
+  if (main_st->city.count > 0) {
+    printf("City: %s\n", main_st->city.items);
+  }
+
+  printf("Prayer Times:\n");
+  for (size_t i = 0; i < NOB_ARRAY_LEN(main_st->prayers); i++) {
+    if (&main_st->prayers[i] == main_st->next_prayer)
+      printf(BOLD RED "%-8s: %02d:%02d%s" RESET "\n",
+          main_st->prayers[i].name,
+          main_st->prayers[i].time.time_h,
+          main_st->prayers[i].time.time_m,
+          " *");
+    else
+      printf("%-8s: %02d:%02d\n",
+          main_st->prayers[i].name,
+          main_st->prayers[i].time.time_h,
+          main_st->prayers[i].time.time_m);
+  }
+
+  return 0;
+}
+
+int awq_process(Main *main_st, cJSON *aladhan_data) {
+  cJSON *timings = awq_json_get_nested(aladhan_data, "data.timings");
+  const char *method = awq_json_get_nested(aladhan_data, "data.meta.method.name")->valuestring;
+
+  nob_sb_append_cstr(&main_st->method, method);
+  nob_sb_append_null(&main_st->method);
+
+  for (size_t i = 0; i < NOB_ARRAY_LEN(main_st->prayers); i++) {
+    Time prayer_time = parse_time(cJSON_GetObjectItem(timings, main_st->prayers[i].name)->valuestring);
+    main_st->prayers[i].time = prayer_time;
+    main_st->prayers[i].diff_now = time_substract(prayer_time, main_st->time_now);
+  }
+
+  int min = INT_MAX;
+  size_t min_idx = 0;
+
+  for (size_t i = 0; i < NOB_ARRAY_LEN(main_st->prayers); i++) {
+    int diff = main_st->prayers[i].diff_now.time_h * 60 +
+      main_st->prayers[i].diff_now.time_m;
+    if (diff > 0 && diff < min) {
+      min = diff;
+      min_idx = i;
+    }
+  }
+
+  main_st->next_prayer = &main_st->prayers[min_idx];
 
   return 0;
 }
@@ -95,7 +176,6 @@ int main(int argc, char *argv[]) {
             exit(EXIT_FAILURE);
           }
 
-          printf("Method chosen: %d-%s.\n", user_method.index, user_method.full_name);
           char tmp_buf[8];
           snprintf(tmp_buf, sizeof(tmp_buf), "%d", user_method.index);
           awq_add_param(&awq_params, "method", tmp_buf);
@@ -135,72 +215,28 @@ int main(int argc, char *argv[]) {
   //   nob_da_append(&awqat_query_params, params[i]);
   // }
 
+  Prayer prayers[5] = {{"Fajr",    {0,0}, {0,0}},
+                       {"Dhuhr",   {0,0}, {0,0}},
+                       {"Asr",     {0,0}, {0,0}},
+                       {"Maghrib", {0,0}, {0,0}},
+                       {"Isha",    {0,0}, {0,0}}};
+
+  Main main_st = {0};
+  memcpy(main_st.prayers, prayers, sizeof(prayers));
+  main_st.time_now = get_time_now();
 
   if (city)
-    awq_get_coord_by_city(&awq_params, city, NOMINATIM_URL);
+    main_st.city = awq_get_coord_by_city(&awq_params, city, NOMINATIM_URL, 1);
   else
     awq_get_user_coord(&awq_params, IP_API_URL);
 
-  Nob_String_Builder resp = (Nob_String_Builder){0};
-  Nob_String_Builder date = get_date_now();
-  int result = awq_fetch(ALADHAN_TIMINGS_URL,
-      date.items,
-      &awq_params,
-      &resp);
-
+  cJSON *aladhan_data = awq_get_prayer_times(&awq_params, ALADHAN_TIMINGS_URL);
   awq_delete_params(&awq_params);
 
-  if (result) {
-    fprintf(stderr, "[awqat] Something wrong when fetching. Exiting..\n");
-    exit(EXIT_FAILURE);
-  }
+  awq_process(&main_st, aladhan_data);
+  cJSON_Delete(aladhan_data);
 
-  nob_sb_free(date);
-
-  cJSON *return_json = cJSON_Parse(nob_sb_to_sv(resp).data);
-  nob_sb_free(resp);
-
-  int code = cJSON_GetObjectItem(return_json, "code")->valueint;
-
-  if (code == 400) {
-    fprintf(stderr, "[awqat] aladhan error %d: %s\n", code,
-        cJSON_GetObjectItem(return_json, "data")->valuestring);
-    exit(EXIT_FAILURE);
-  }
-
-  cJSON *timings = awq_json_get_nested(return_json, "data.timings");
-  const char *method = awq_json_get_nested(return_json, "data.meta.method.name")->valuestring;
-
-  const char *prayer_names[] = {"Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"};
-  const char *prayer_times[NOB_ARRAY_LEN(prayer_names)];
-  int diff[NOB_ARRAY_LEN(prayer_times)];
-
-  printf("%-8s: %s\n", "Method", method);
-  Nob_String_Builder now = get_time_now();
-  for (size_t i = 0; i < NOB_ARRAY_LEN(prayer_names); i++) {
-    prayer_times[i] = cJSON_GetObjectItem(timings, prayer_names[i])->valuestring;
-    diff[i] = parse_minutes(prayer_times[i]) - parse_minutes(now.items);
-  }
-  nob_sb_free(now);
-
-  int min = INT_MAX;
-  size_t min_idx = 0;
-
-  for (size_t i = 0; i < NOB_ARRAY_LEN(prayer_names); i++) {
-    if (diff[i] > 0 && diff[i] < min) {
-      min = diff[i];
-      min_idx = i;
-    }
-  }
-
-  for (size_t i = 0; i < NOB_ARRAY_LEN(prayer_names); i++) {
-    if (i == min_idx)
-      printf(BOLD RED "%-8s: %s%s" RESET "\n", prayer_names[i], prayer_times[i], " *");
-    else
-      printf("%-8s: %s\n", prayer_names[i], prayer_times[i]);
-  }
-
-  cJSON_Delete(return_json);
+  awq_output(&main_st);
 
   return 0;
 }

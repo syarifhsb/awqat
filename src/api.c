@@ -1,9 +1,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <curl/curl.h>
-#include <time.h>
 #include "api.h"
-#include "cJSON.h"
 
 #include "../nob.h"
 
@@ -90,76 +88,6 @@ int awq_delete_params(Params *params) {
     nob_sb_free(params->items[i].value);
   }
   nob_da_free(*params);
-
-  return 0;
-}
-
-int awq_get_coord_by_city(Params *params, const char *city, const char *nominatim_url) {
-  Params nominatim_params = {0};
-
-  awq_add_param(&nominatim_params, "city", city);
-  awq_add_param(&nominatim_params, "format", "json");
-  awq_add_param(&nominatim_params, "limit", "1");
-
-  Nob_String_Builder resp = {0};
-  int result = awq_fetch(nominatim_url,
-      "search",
-      &nominatim_params,
-      &resp);
-
-  awq_delete_params(&nominatim_params);
-
-  cJSON *return_json = cJSON_Parse(nob_sb_to_sv(resp).data);
-  nob_sb_free(resp);
-
-  cJSON *data;
-  if (cJSON_IsArray(return_json)) {
-    data = cJSON_GetArrayItem(return_json, 0);
-  }
-
-  cJSON *latitude = cJSON_GetObjectItem(data, "lat");
-  cJSON *longitude = cJSON_GetObjectItem(data, "lon");
-
-  awq_add_param(params, "latitude", latitude->valuestring);
-  awq_add_param(params, "longitude", longitude->valuestring);
-
-  return 0;
-}
-
-int awq_get_user_coord(Params *params, const char *ip_api_url) {
-  Nob_String_Builder resp = {0};
-  int result = awq_fetch(ip_api_url,
-      NULL,
-      NULL,
-      &resp);
-
-  if (result != CURLE_OK) {
-      fprintf(stderr, "failed to fetch IP API\n");
-      exit(EXIT_FAILURE);
-  }
-
-  cJSON *data = cJSON_Parse(nob_sb_to_sv(resp).data);
-  nob_sb_free(resp);
-
-  cJSON *latitude = cJSON_GetObjectItem(data, "lat");
-  cJSON *longitude = cJSON_GetObjectItem(data, "lon");
-
-  if (!cJSON_IsNumber(latitude) || !cJSON_IsNumber(longitude)) {
-      fprintf(stderr, "failed to parse IP API JSON\n");
-      exit(EXIT_FAILURE);
-  }
-
-  // TODO: pass value without cJSON_Print
-  char *lat_s = cJSON_Print(latitude);
-  char *lon_s = cJSON_Print(longitude);
-
-  awq_add_param(params, "latitude", lat_s);
-  awq_add_param(params, "longitude", lon_s);
-
-  cJSON_free(lat_s);
-  cJSON_free(lon_s);
-
-  cJSON_Delete(data);
 
   return 0;
 }

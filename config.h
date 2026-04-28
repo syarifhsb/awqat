@@ -6,7 +6,6 @@
 #define NOMINATIM_URL       "https://nominatim.openstreetmap.org"
 
 // Methods
-
 typedef struct {
   int index;
   const char* alias;

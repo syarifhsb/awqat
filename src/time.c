@@ -1,4 +1,4 @@
-#include <time.h>
+#include "time.h"
 
 #define NOB_IMPLEMENTATION
 #include "../nob.h"
@@ -13,21 +13,36 @@ Nob_String_Builder get_date_now() {
   return sb;
 }
 
-Nob_String_Builder get_time_now() {
-  Nob_String_Builder sb = {0};
+Time get_time_now() {
+  Time now = {0};
 
   time_t t = time(NULL);
   struct tm *tm = localtime(&t);
 
-  nob_sb_appendf(&sb, "%02d:%02d", tm->tm_hour, tm->tm_min);
-  return sb;
+  now.time_h = tm->tm_hour;
+  now.time_m = tm->tm_min;
+
+  return now;
 }
 
 #undef NOB_IMPLEMENTATION
 
-int parse_minutes(const char *time) {
+Time parse_time(const char *time) {
+  Time t;
   int h, m;
   sscanf(time, "%d:%d", &h, &m);
-  return h * 60 + m;
+  
+  t.time_h = h;
+  t.time_m = m;
+
+  return t;
 }
 
+Time time_substract(Time a, Time b) {
+  Time t;
+
+  t.time_h = a.time_h - b.time_h;
+  t.time_m = a.time_m - b.time_m;
+
+  return t;
+}

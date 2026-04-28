@@ -24,7 +24,9 @@ int main(int argc, char **argv)
     { .obj_path = BUILD_FOLDER"cJSON.o",  .src_path = SOURCE_FOLDER"cJSON.c" },
     { .obj_path = BUILD_FOLDER"json.o",   .src_path = SOURCE_FOLDER"json.c" },
     { .obj_path = BUILD_FOLDER"api.o",    .src_path = SOURCE_FOLDER"api.c" },
-    { .obj_path = BUILD_FOLDER"utils.o",  .src_path = SOURCE_FOLDER"utils.c" },
+    { .obj_path = BUILD_FOLDER"time.o",   .src_path = SOURCE_FOLDER"time.c" },
+    { .obj_path = BUILD_FOLDER"awq_api_calls.o",
+      .src_path = SOURCE_FOLDER"awq_api_calls.c" },
     { .obj_path = BUILD_FOLDER"awqat.o",  .src_path = SOURCE_FOLDER"awqat.c" },
   };
 
