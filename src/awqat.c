@@ -21,6 +21,7 @@ int awq_show_usage(const char* app_name) {
   printf("Available options:\n");
   printf("  %-26s%s\n", "-m, --method=METHOD", "Select from the list of methods.");
   printf("  %-26s%s\n", "", "Methods can be integer or an alias.");
+  printf("  %-26s%s\n", "-c, --city=CITY", "Get prayer times by city.");
   printf("\n");
   printf("Methods:\n");
   for (size_t i = 0; i < NOB_ARRAY_LEN(methods); i++) {
@@ -76,6 +77,16 @@ int awq_output(Main *main_st) {
           main_st->prayers[i].time.time_h,
           main_st->prayers[i].time.time_m);
   }
+
+  return 0;
+}
+
+int awq_cleanup(Main *main_st) {
+  if (main_st->method.count > 0)
+    nob_sb_free(main_st->method);
+
+  if (main_st->city.count > 0)
+    nob_sb_free(main_st->city);
 
   return 0;
 }
@@ -196,25 +207,6 @@ int main(int argc, char *argv[]) {
     }
   }
 
-  // if (optind < argc) {
-  //   printf("non-option ARGV-elements: ");
-  //   while (optind < argc)
-  //     printf("%s ", argv[optind++]);
-  //   printf("\n");
-  // }
-
-  // ============================================================================
-
-  // Param params[] = {
-  //   { .name = "not_latitude", .value = "43.6046"},
-  //   { .name = "not_longitude", .value = "1.4451"},
-  // };
-  // Params awqat_query_params = {0};
-  // for (size_t i = 0; i < NOB_ARRAY_LEN(params); i++) {
-  //   printf("Name: %s\n\tValue: %s\n", params[i].name, params[i].value);
-  //   nob_da_append(&awqat_query_params, params[i]);
-  // }
-
   Prayer prayers[5] = {{"Fajr",    {0,0}, {0,0}},
                        {"Dhuhr",   {0,0}, {0,0}},
                        {"Asr",     {0,0}, {0,0}},
@@ -237,6 +229,7 @@ int main(int argc, char *argv[]) {
   cJSON_Delete(aladhan_data);
 
   awq_output(&main_st);
+  awq_cleanup(&main_st);
 
   return 0;
 }
