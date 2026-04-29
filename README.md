@@ -6,17 +6,26 @@ A tool suitable for terminal users to look at prayer times without moving away f
 
 Thanks to [nob.h](https://github.com/tsoding/nob.h/), you only need C compiler to install nob, and subsequently the application.
 
-For the first time, you need to bootstrap nob.
+For the first time, you need to bootstrap the `nob` build tool by compiling it.
 
 ```bash
 cc -o nob nob.c
 ```
 
-It will compile `nob` and `awqat`.
-
-Next time, you only need to launch nob.
+Then launch `nob`.
 ```bash
 ./nob
 ```
 It will do the build for you and recompile nob if needed.
 
+## Usage
+
+Get prayer times based on your location.
+```bash
+./awqat
+```
+
+Check usage help for more options.
+```bash
+./awqat -h
+```
