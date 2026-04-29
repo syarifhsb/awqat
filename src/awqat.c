@@ -24,6 +24,7 @@ int awq_show_usage(const char* app_name) {
   printf("  %-26s%s\n", "-m, --method=METHOD", "Select from the list of methods.");
   printf("  %-26s%s\n", "", "Methods can be integer or an alias.");
   printf("  %-26s%s\n", "-c, --city=CITY", "Get prayer times by city.");
+  printf("  %-26s%s\n", "-n, --next", "Only display the next prayer.");
   printf("\n");
   printf("Methods:\n");
   for (size_t i = 0; i < NOB_ARRAY_LEN(methods); i++) {
@@ -43,6 +44,10 @@ int awq_show_usage(const char* app_name) {
 #define CYAN    "\033[36m"
 
 typedef struct {
+  int only_next;
+} Options;
+
+typedef struct {
   const char* name;
   Time time;
   Time diff_now;
@@ -56,7 +61,15 @@ typedef struct {
   Prayer prayers[5];
 } Main;
 
-int awq_output(Main *main_st) {
+int awq_output(Main *main_st, Options *options) {
+  if (options->only_next) {
+    printf("%s: %02d:%02d\n",
+        main_st->next_prayer->name,
+        main_st->next_prayer->time.time_h,
+        main_st->next_prayer->time.time_m);
+    return 0;
+  }
+
   if (main_st->method.count > 0) {
     printf("Prayer times calculation method: %s\n", main_st->method.items);
   }
@@ -128,17 +141,19 @@ int main(int argc, char *argv[]) {
   char *city = NULL;
 
   int c;
+  Options options = {0};
 
   while (1) {
     int option_index = 0;
     static struct option long_options[] = {
       {"city",    required_argument, 0, 'c'},
       {"method",  required_argument, 0, 'm'},
+      {"next",    no_argument,       0, 'n'},
       {"help",    no_argument,       0, 'h'},
       {0,         0,                 0,  0 }
     };
 
-    c = getopt_long(argc, argv, "hm:c:",
+    c = getopt_long(argc, argv, "hm:c:n",
         long_options, &option_index);
     if (c == -1)
       break;
@@ -196,6 +211,10 @@ int main(int argc, char *argv[]) {
           break;
         }
 
+      case 'n':
+        options.only_next = 1;
+        break;
+
       case 'h':
         awq_show_usage(argv[0]);
         exit(EXIT_SUCCESS);
@@ -232,7 +251,7 @@ int main(int argc, char *argv[]) {
   awq_process(&main_st, aladhan_data);
   cJSON_Delete(aladhan_data);
 
-  awq_output(&main_st);
+  awq_output(&main_st, &options);
   awq_cleanup(&main_st);
 
   return 0;
