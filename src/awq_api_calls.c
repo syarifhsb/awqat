@@ -114,5 +114,7 @@ Nob_String_Builder awq_get_coord_by_city(Params *ret_params, const char *city, c
     nob_sb_append_null(&ret_sb);
   }
 
+  cJSON_Delete(return_json);
+
   return ret_sb;
 }

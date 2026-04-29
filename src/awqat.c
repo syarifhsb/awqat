@@ -123,7 +123,7 @@ int awq_process(Main *main_st, cJSON *aladhan_data) {
 
 int main(int argc, char *argv[]) {
   Params awq_params = {0};
-  const char *city = NULL;
+  char *city = NULL;
 
   int c;
 
@@ -217,10 +217,12 @@ int main(int argc, char *argv[]) {
   memcpy(main_st.prayers, prayers, sizeof(prayers));
   main_st.time_now = awq_get_time_now();
 
-  if (city)
+  if (city) {
     main_st.city = awq_get_coord_by_city(&awq_params, city, NOMINATIM_URL, 1);
-  else
+    free(city);
+  } else {
     awq_get_user_coord(&awq_params, IP_API_URL);
+  }
 
   cJSON *aladhan_data = awq_get_prayer_times(&awq_params, ALADHAN_TIMINGS_URL);
   awq_delete_params(&awq_params);
