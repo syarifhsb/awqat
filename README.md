@@ -16,7 +16,7 @@ It will compile `nob` and `awqat`.
 
 Next time, you only need to launch nob.
 ```bash
-cc -o nob nob.c
+./nob
 ```
 It will do the build for you and recompile nob if needed.
 
