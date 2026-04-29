@@ -1,6 +1,7 @@
 #ifndef AWQAT_UTILS_H_
 #define AWQAT_UTILS_H_
 
+#define NOB_UNSTRIP_PREFIX
 #include "../nob.h"
 
 typedef struct {

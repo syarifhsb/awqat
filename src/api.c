@@ -3,6 +3,7 @@
 #include <curl/curl.h>
 #include "api.h"
 
+#define NOB_UNSTRIP_PREFIX
 #include "../nob.h"
 
 size_t fetch_write_callback(char *ptr, size_t size, size_t nmemb, void *userdata) {
@@ -57,6 +58,12 @@ int awq_fetch(const char *main_url, const char *path_params, const Params *query
   struct curl_slist *headers = NULL;
   headers = curl_slist_append(headers, "Accept-Encoding: application/json");
   curl_slist_append(headers, "User-Agent: awqat-cli/1.0");
+
+  // Respect SSL_CERT_FILE if set, otherwise fall back to the known good bundle
+  const char *ca = getenv("SSL_CERT_FILE");
+
+  if (ca)
+    curl_easy_setopt(curl, CURLOPT_CAINFO, ca);
 
   curl_easy_setopt(curl, CURLOPT_HTTPHEADER, headers);
   curl_easy_setopt(curl, CURLOPT_WRITEFUNCTION, fetch_write_callback);

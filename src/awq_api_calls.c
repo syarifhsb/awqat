@@ -3,6 +3,7 @@
 #include "cJSON.h"
 #include "time.h"
 
+#define NOB_UNSTRIP_PREFIX
 #include "../nob.h"
 
 cJSON* awq_get_prayer_times(const Params *params, const char *aladhan_api_url) {

@@ -12,6 +12,8 @@
 #include "awq_api_calls.h"
 
 #include "../config.h"
+
+#define NOB_UNSTRIP_PREFIX
 #include "../nob.h"
 
 int awq_show_usage(const char* app_name) {

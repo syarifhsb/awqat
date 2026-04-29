@@ -1,6 +1,7 @@
 #include "time.h"
 
 #define NOB_IMPLEMENTATION
+#define NOB_UNSTRIP_PREFIX
 #include "../nob.h"
 
 Nob_String_Builder awq_get_date_now() {
@@ -31,7 +32,7 @@ Time awq_parse_time(const char *time) {
   Time t;
   int h, m;
   sscanf(time, "%d:%d", &h, &m);
-  
+
   t.time_h = h;
   t.time_m = m;
 

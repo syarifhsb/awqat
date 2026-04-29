@@ -2,6 +2,8 @@
 #define AWQAT_API_H_
 
 #include <stddef.h>
+
+#define NOB_UNSTRIP_PREFIX
 #include "../nob.h"
 
 typedef struct {

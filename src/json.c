@@ -1,4 +1,6 @@
 #include "cJSON.h"
+
+#define NOB_UNSTRIP_PREFIX
 #include "../nob.h"
 
 cJSON *awq_json_get_nested(cJSON *root, const char *path) {
