@@ -3,8 +3,9 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <curl/curl.h>
+
 #include "api.h"
-#include "json.h"
+#include "awq_process.h"
 #include "time.h"
 #include "cJSON.h"
 
@@ -47,20 +48,6 @@ typedef struct {
   int only_next;
 } Options;
 
-typedef struct {
-  const char* name;
-  Time time;
-  Time diff_now;
-} Prayer;
-
-typedef struct {
-  Nob_String_Builder method;
-  Nob_String_Builder city;
-  Time time_now;
-  Prayer *next_prayer;
-  Prayer prayers[5];
-} Main;
-
 int awq_output(Main *main_st, Options *options) {
   if (options->only_next) {
     printf("%s: %02d:%02d\n",
@@ -92,46 +79,6 @@ int awq_output(Main *main_st, Options *options) {
           main_st->prayers[i].time.time_h,
           main_st->prayers[i].time.time_m);
   }
-
-  return 0;
-}
-
-int awq_cleanup(Main *main_st) {
-  if (main_st->method.count > 0)
-    nob_sb_free(main_st->method);
-
-  if (main_st->city.count > 0)
-    nob_sb_free(main_st->city);
-
-  return 0;
-}
-
-int awq_process(Main *main_st, cJSON *aladhan_data) {
-  cJSON *timings = awq_json_get_nested(aladhan_data, "data.timings");
-  const char *method = awq_json_get_nested(aladhan_data, "data.meta.method.name")->valuestring;
-
-  nob_sb_append_cstr(&main_st->method, method);
-  nob_sb_append_null(&main_st->method);
-
-  for (size_t i = 0; i < NOB_ARRAY_LEN(main_st->prayers); i++) {
-    Time prayer_time = awq_parse_time(cJSON_GetObjectItem(timings, main_st->prayers[i].name)->valuestring);
-    main_st->prayers[i].time = prayer_time;
-    main_st->prayers[i].diff_now = awq_time_substract(prayer_time, main_st->time_now);
-  }
-
-  int min = INT_MAX;
-  size_t min_idx = 0;
-
-  for (size_t i = 0; i < NOB_ARRAY_LEN(main_st->prayers); i++) {
-    int diff = main_st->prayers[i].diff_now.time_h * 60 +
-      main_st->prayers[i].diff_now.time_m;
-    if (diff > 0 && diff < min) {
-      min = diff;
-      min_idx = i;
-    }
-  }
-
-  main_st->next_prayer = &main_st->prayers[min_idx];
 
   return 0;
 }
@@ -242,7 +189,7 @@ int main(int argc, char *argv[]) {
     main_st.city = awq_get_coord_by_city(&awq_params, city, NOMINATIM_URL, 1);
     free(city);
   } else {
-    awq_get_user_coord(&awq_params, IP_API_URL);
+    awq_get_user_coord_params(&awq_params, IP_API_URL);
   }
 
   cJSON *aladhan_data = awq_get_prayer_times(&awq_params, ALADHAN_TIMINGS_URL);
