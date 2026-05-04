@@ -29,3 +29,8 @@ Check usage help for more options.
 ```bash
 ./awqat -h
 ```
+
+Run GUI with
+```bash
+./awqat_gui
+```

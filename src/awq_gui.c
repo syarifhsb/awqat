@@ -122,7 +122,7 @@ int main() {
   // End Fetching
 
 
-
+  // Main Game Loop
   while (!WindowShouldClose()) {
     BeginDrawing();
 
@@ -152,6 +152,7 @@ int main() {
 
     EndDrawing();
   }
+  // End - Main Game Loop
 
   UnloadTexture(world_texture);
 
