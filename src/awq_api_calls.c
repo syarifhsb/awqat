@@ -2,6 +2,7 @@
 #include "api.h"
 #include "cJSON.h"
 #include "time.h"
+#include "json.h"
 
 #define NOB_UNSTRIP_PREFIX
 #include "../nob.h"
@@ -35,7 +36,7 @@ cJSON* awq_get_prayer_times(const Params *params, const char *aladhan_api_url) {
   return data;
 }
 
-int awq_get_user_coord(Params *ret_params, const char *ip_api_url) {
+int awq_get_user_coord(float *lat, float*lon, const char *ip_api_url) {
   Nob_String_Builder resp = {0};
   int result = awq_fetch(ip_api_url,
       NULL,
@@ -58,19 +59,74 @@ int awq_get_user_coord(Params *ret_params, const char *ip_api_url) {
       exit(EXIT_FAILURE);
   }
 
-  // TODO: pass value without cJSON_Print
-  char *lat_s = cJSON_Print(latitude);
-  char *lon_s = cJSON_Print(longitude);
-
-  awq_add_param(ret_params, "latitude", lat_s);
-  awq_add_param(ret_params, "longitude", lon_s);
-
-  cJSON_free(lat_s);
-  cJSON_free(lon_s);
+  *lat = latitude->valuedouble;
+  *lon = longitude->valuedouble;
 
   cJSON_Delete(data);
 
   return 0;
+}
+
+int awq_get_user_coord_params(Params *ret_params, const char *ip_api_url) {
+  float lat, lon;
+  awq_get_user_coord(&lat, &lon, ip_api_url);
+
+  char buf[32] = {0};
+
+  snprintf(buf, sizeof(buf), "%f", lat);
+  awq_add_param(ret_params, "latitude", buf);
+
+  memset(buf, 0, sizeof(buf));
+  snprintf(buf, sizeof(buf), "%f", lon);
+  awq_add_param(ret_params, "longitude", buf);
+
+  return 0;
+}
+
+int awq_get_location_name(float lat, float lon, const char *nominatim_url, Nob_String_Builder *location_name) {
+  Params params = {0};
+
+  awq_add_param(&params, "format", "json");
+
+  char buf[32] = {0};
+  snprintf(buf, sizeof(buf), "%f", lat);
+  awq_add_param(&params, "lat", buf);
+
+  memset(buf, 0, sizeof(buf));
+  snprintf(buf, sizeof(buf), "%f", lon);
+  awq_add_param(&params, "lon", buf);
+
+  Nob_String_Builder resp = {0};
+  int result = awq_fetch(nominatim_url,
+      "reverse",
+      &params,
+      &resp);
+
+  if (result != CURLE_OK) {
+      fprintf(stderr, "Error: failed to fetch Nominatim API.\n");
+      exit(EXIT_FAILURE);
+  }
+
+  cJSON *data = cJSON_Parse(nob_sb_to_sv(resp).data);
+  nob_sb_free(resp);
+
+  cJSON *code_j = awq_json_get_nested(data, "error.code");
+  int code = code_j ? code_j->valueint : 0;
+  if (code == 400) {
+    fprintf(stderr, "Error: Nominatim api error %d: %s\n", code,
+        awq_json_get_nested(data, "error.message")->valuestring);
+    fprintf(stderr, "data:\n%s\n", cJSON_Print(data));
+  }
+
+  cJSON *city = awq_json_get_nested(data, "address.city");
+  nob_sb_append_cstr(location_name, city->valuestring);
+  nob_sb_append_null(location_name);
+
+  cJSON_Delete(data);
+
+  awq_delete_params(&params);
+
+  return 1;
 }
 
 Nob_String_Builder awq_get_coord_by_city(Params *ret_params, const char *city, const char *nominatim_url, int return_city_sb) {

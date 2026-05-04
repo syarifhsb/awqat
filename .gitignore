@@ -1,7 +1,6 @@
 *.o
+*.exe*
 nob
 nob.old
 awqat
-awqat.exe
-nob.exe
-nob.exe.old
+awqat_gui
