@@ -63,7 +63,7 @@ void draw_label(const char *text, Vector2 pos, Vector2 box_size, float padding, 
   return;
 }
 
-void draw_search_bar(Vector2 pos, Vector2 box_size, float padding, float font_size, Color text_color, char *city, int search_bar_focus) {
+void draw_search_bar(Vector2 pos, Vector2 box_size, float padding, float font_size, Color text_color, char *city, int search_bar_focus, size_t frames_counter, int letter_count) {
   Font default_font = GetFontDefault();
 
   Rectangle box = {
@@ -84,6 +84,14 @@ void draw_search_bar(Vector2 pos, Vector2 box_size, float padding, float font_si
 
   char buf[256];
   snprintf(buf, sizeof(buf), "Search by city: %s", city);
+
+  if (search_bar_focus &&
+      letter_count < MAX_INPUT_CHARS &&
+      ((frames_counter/20)%2) == 0)
+    snprintf(buf, sizeof(buf), "Search by city: %s|", city);
+  else
+    snprintf(buf, sizeof(buf), "Search by city: %s", city);
+
 
   DrawTextEx(default_font, buf, (Vector2)text_pos, font_size, 2, text_color);
 
@@ -118,12 +126,14 @@ void update_search_text(Rectangle search_box, int search_bar_focus, int *letter_
   return;
 }
 
-void launch_search(Main *main_st, float *lat, float *lon, Rectangle search_box, int search_bar_focus, char *city, char *nominatim_url) {
-  if (search_bar_focus) {
+void launch_search(Main *main_st, float *lat, float *lon, Rectangle search_box, int *search_bar_focus, char *city, char *nominatim_url) {
+  if (*search_bar_focus) {
     int key = GetCharPressed();
 
     if (!IsKeyPressed(KEY_ENTER)) return;
   } else return;
+
+  *search_bar_focus = 0;
 
   main_st->city = awq_get_coord_by_city(lat, lon, city, nominatim_url, 1);
 
@@ -176,6 +186,7 @@ int main() {
 
   int mouse_on_text = 0;
   int search_bar_focus = 0;
+  size_t frames_counter = 0;
 
   Image world = LoadImage("assets/world-map.png");
 
@@ -221,7 +232,8 @@ int main() {
       (Vector2){ PRAYER_LABEL_WIDTH * 5 + PRAYER_LABEL_GAP * 4, PRAYER_LABEL_HEIGHT },
       PRAYER_LABEL_PADDING,
       PRAYER_LABEL_FONT_SIZE,
-      WHITE, city, search_bar_focus);
+      WHITE, city,
+      search_bar_focus, frames_counter, letter_count);
 
   EndDrawing();
   // Display map before fetching
@@ -259,7 +271,9 @@ int main() {
     set_search_focus(search_box, &search_bar_focus, &mouse_on_text);
     set_mouse_cursor(search_box, mouse_on_text);
     update_search_text(search_box, search_bar_focus, &letter_count, city);
-    launch_search(&main_st, &lat, &lon, search_box, search_bar_focus, city, NOMINATIM_URL);
+    launch_search(&main_st, &lat, &lon, search_box, &search_bar_focus, city, NOMINATIM_URL);
+    if (search_bar_focus) frames_counter++;
+    else frames_counter = 0;
 
     BeginDrawing();
 
@@ -290,7 +304,8 @@ int main() {
         (Vector2){ PRAYER_LABEL_WIDTH * 5 + PRAYER_LABEL_GAP * 4, PRAYER_LABEL_HEIGHT },
         PRAYER_LABEL_PADDING,
         PRAYER_LABEL_FONT_SIZE,
-        WHITE, city, search_bar_focus);
+        WHITE, city,
+        search_bar_focus, frames_counter, letter_count);
 
     draw_location(main_st.city.items, lat, lon);
 
