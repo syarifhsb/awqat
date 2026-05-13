@@ -108,6 +108,7 @@ int awq_get_location_name(float lat, float lon, const char *nominatim_url, Nob_S
   Params params = {0};
 
   awq_add_param(&params, "format", "json");
+  awq_add_param(&params, "limit", "1");
 
   char buf[32] = {0};
   snprintf(buf, sizeof(buf), "%f", lat);
@@ -176,6 +177,7 @@ Nob_String_Builder awq_get_coord_by_city(float *lat, float *lon, const char *cit
   cJSON *data = cJSON_GetArrayItem(return_json, 0);
   if (!data) {
     fprintf(stderr, "Error: Could not find city: %s\n", city);
+    // TODO: GUI Do not exit.
     exit(EXIT_FAILURE);
   }
 
@@ -187,7 +189,7 @@ Nob_String_Builder awq_get_coord_by_city(float *lat, float *lon, const char *cit
 
   Nob_String_Builder ret_sb = {0};
   if (return_city_sb) {
-    cJSON *city = cJSON_GetObjectItem(data, "display_name");
+    cJSON *city = cJSON_GetObjectItem(data, "name");
     nob_sb_append_cstr(&ret_sb, city->valuestring);
     nob_sb_append_null(&ret_sb);
   }

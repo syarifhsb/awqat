@@ -125,10 +125,6 @@ void launch_search(Main *main_st, float *lat, float *lon, Rectangle search_box, 
     if (!IsKeyPressed(KEY_ENTER)) return;
   } else return;
 
-  main_st->time_now = awq_get_time_now();
-
-  // TODO: Get short name instead of full name
-  // Preserve long name in awqat-cli
   main_st->city = awq_get_coord_by_city(lat, lon, city, nominatim_url, 1);
 
   Params awq_params = {0};
@@ -232,6 +228,9 @@ int main() {
 
   // Main Game Loop
   while (!WindowShouldClose()) {
+    // Update Time
+    main_st.time_now = awq_get_time_now();
+
     update_search_text(search_box, &mouseOnText, &letterCount, city);
     launch_search(&main_st, &lat, &lon, search_box, mouseOnText, city, NOMINATIM_URL);
 
