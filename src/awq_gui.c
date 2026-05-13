@@ -63,7 +63,7 @@ void draw_label(const char *text, Vector2 pos, Vector2 box_size, float padding, 
   return;
 }
 
-void draw_search_bar(Vector2 pos, Vector2 box_size, float padding, float font_size, Color text_color, char *city) {
+void draw_search_bar(Vector2 pos, Vector2 box_size, float padding, float font_size, Color text_color, char *city, int search_bar_focus) {
   Font default_font = GetFontDefault();
 
   Rectangle box = {
@@ -75,8 +75,12 @@ void draw_search_bar(Vector2 pos, Vector2 box_size, float padding, float font_si
 
   Vector2 text_pos = { pos.x + padding, pos.y + padding };
 
+  Color outline;
+  if (search_bar_focus) outline = RED;
+  else outline = BLACK;
+
   DrawRectangleRec(box, (Color){ 0, 0, 0, 120 });
-  DrawRectangleLinesEx(box, 1.5f, (Color){ 0, 0, 0, 255 });
+  DrawRectangleLinesEx(box, 1.5f, outline);
 
   char buf[256];
   snprintf(buf, sizeof(buf), "Search by city: %s", city);
@@ -86,21 +90,17 @@ void draw_search_bar(Vector2 pos, Vector2 box_size, float padding, float font_si
   return;
 }
 
-void update_search_text(Rectangle search_box, int *mouseOnText, int *letterCount, char *city) {
-  if (CheckCollisionPointRec(GetMousePosition(), search_box)) *mouseOnText = 1;
-  else *mouseOnText = 0;
-
-  if (*mouseOnText) {
-    SetMouseCursor(MOUSE_CURSOR_IBEAM);
+void update_search_text(Rectangle search_box, int search_bar_focus, int *letter_count, char *city) {
+  if (search_bar_focus) {
     int key = GetCharPressed();
     while (key > 0)
     {
       // NOTE: Only allow keys in range [32..125]
-      if ((key >= 32) && (key <= 125) && (*letterCount < MAX_INPUT_CHARS))
+      if ((key >= 32) && (key <= 125) && (*letter_count < MAX_INPUT_CHARS))
       {
-        city[*letterCount] = (char)key;
-        city[*letterCount+1] = '\0'; // Add null terminator at the end of the string
-        (*letterCount)++;
+        city[*letter_count] = (char)key;
+        city[*letter_count+1] = '\0'; // Add null terminator at the end of the string
+        (*letter_count)++;
       }
 
       key = GetCharPressed();  // Check next character in the queue
@@ -108,18 +108,18 @@ void update_search_text(Rectangle search_box, int *mouseOnText, int *letterCount
 
     if (IsKeyPressed(KEY_BACKSPACE))
     {
-      (*letterCount)--;
-      if (*letterCount < 0) *letterCount = 0;
-      city[*letterCount] = '\0';
+      (*letter_count)--;
+      if (*letter_count < 0) *letter_count = 0;
+      city[*letter_count] = '\0';
     }
 
-  } else SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+  }
 
   return;
 }
 
-void launch_search(Main *main_st, float *lat, float *lon, Rectangle search_box, int mouseOnText, char *city, char *nominatim_url) {
-  if (mouseOnText) {
+void launch_search(Main *main_st, float *lat, float *lon, Rectangle search_box, int search_bar_focus, char *city, char *nominatim_url) {
+  if (search_bar_focus) {
     int key = GetCharPressed();
 
     if (!IsKeyPressed(KEY_ENTER)) return;
@@ -145,12 +145,37 @@ void launch_search(Main *main_st, float *lat, float *lon, Rectangle search_box, 
   return;
 }
 
+void set_search_focus(Rectangle search_box, int *search_bar_focus, int *mouse_on_text) {
+  if (CheckCollisionPointRec(GetMousePosition(), search_box)) *mouse_on_text = 1;
+  else *mouse_on_text = 0;
+
+  if (*mouse_on_text && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    *search_bar_focus = 1;
+  }
+
+  if (!*mouse_on_text && IsMouseButtonPressed(MOUSE_BUTTON_LEFT)) {
+    *search_bar_focus = 0;
+  }
+
+  return;
+}
+
+void set_mouse_cursor(Rectangle search_box, int mouse_on_text) {
+  if (CheckCollisionPointRec(GetMousePosition(), search_box))
+    SetMouseCursor(MOUSE_CURSOR_IBEAM);
+  else
+    SetMouseCursor(MOUSE_CURSOR_DEFAULT);
+
+  return;
+}
+
 int main() {
   InitWindow(WIN_WIDTH, WIN_HEIGHT, "Awqat GUI");
   // SetExitKey(KEY_Q);
   SetTargetFPS(30);
 
-  int mouseOnText = 0;
+  int mouse_on_text = 0;
+  int search_bar_focus = 0;
 
   Image world = LoadImage("assets/world-map.png");
 
@@ -188,7 +213,7 @@ int main() {
       PRAYER_LABEL_WIDTH * 5 + PRAYER_LABEL_GAP * 4,
       PRAYER_LABEL_HEIGHT
   };
-  int letterCount = 0;
+  int letter_count = 0;
   char city[MAX_INPUT_CHARS + 1] = "\0";
 
   draw_search_bar(
@@ -196,7 +221,7 @@ int main() {
       (Vector2){ PRAYER_LABEL_WIDTH * 5 + PRAYER_LABEL_GAP * 4, PRAYER_LABEL_HEIGHT },
       PRAYER_LABEL_PADDING,
       PRAYER_LABEL_FONT_SIZE,
-      WHITE, city);
+      WHITE, city, search_bar_focus);
 
   EndDrawing();
   // Display map before fetching
@@ -231,8 +256,10 @@ int main() {
     // Update Time
     main_st.time_now = awq_get_time_now();
 
-    update_search_text(search_box, &mouseOnText, &letterCount, city);
-    launch_search(&main_st, &lat, &lon, search_box, mouseOnText, city, NOMINATIM_URL);
+    set_search_focus(search_box, &search_bar_focus, &mouse_on_text);
+    set_mouse_cursor(search_box, mouse_on_text);
+    update_search_text(search_box, search_bar_focus, &letter_count, city);
+    launch_search(&main_st, &lat, &lon, search_box, search_bar_focus, city, NOMINATIM_URL);
 
     BeginDrawing();
 
@@ -263,7 +290,7 @@ int main() {
         (Vector2){ PRAYER_LABEL_WIDTH * 5 + PRAYER_LABEL_GAP * 4, PRAYER_LABEL_HEIGHT },
         PRAYER_LABEL_PADDING,
         PRAYER_LABEL_FONT_SIZE,
-        WHITE, city);
+        WHITE, city, search_bar_focus);
 
     draw_location(main_st.city.items, lat, lon);
 
