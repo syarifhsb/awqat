@@ -7,6 +7,27 @@
 #define NOB_UNSTRIP_PREFIX
 #include "../nob.h"
 
+int awq_string_to_float(char *s, float *f) {
+  float val;
+  char *endptr;
+  errno = 0;
+
+  val = strtof(s, &endptr);
+  if (errno == ERANGE) {
+    perror("strtof overflow");
+    exit(EXIT_FAILURE);
+  }
+
+  if (endptr == s) {
+    fprintf(stderr, "No digits were found\n");
+    exit(EXIT_FAILURE);
+  }
+
+  *f = val;
+
+  return 0;
+}
+
 cJSON* awq_get_prayer_times(const Params *params, const char *aladhan_api_url) {
   Nob_String_Builder resp = (Nob_String_Builder){0};
   Nob_String_Builder date = awq_get_date_now();
@@ -129,7 +150,7 @@ int awq_get_location_name(float lat, float lon, const char *nominatim_url, Nob_S
   return 1;
 }
 
-Nob_String_Builder awq_get_coord_by_city(Params *ret_params, const char *city, const char *nominatim_url, int return_city_sb) {
+Nob_String_Builder awq_get_coord_by_city(float *lat, float *lon, const char *city, const char *nominatim_url, int return_city_sb) {
   Params nominatim_params = {0};
 
   awq_add_param(&nominatim_params, "city", city);
@@ -161,8 +182,8 @@ Nob_String_Builder awq_get_coord_by_city(Params *ret_params, const char *city, c
   cJSON *latitude = cJSON_GetObjectItem(data, "lat");
   cJSON *longitude = cJSON_GetObjectItem(data, "lon");
 
-  awq_add_param(ret_params, "latitude", latitude->valuestring);
-  awq_add_param(ret_params, "longitude", longitude->valuestring);
+  awq_string_to_float(latitude->valuestring, lat);
+  awq_string_to_float(longitude->valuestring, lon);
 
   Nob_String_Builder ret_sb = {0};
   if (return_city_sb) {

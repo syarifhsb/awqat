@@ -186,7 +186,17 @@ int main(int argc, char *argv[]) {
   main_st.time_now = awq_get_time_now();
 
   if (city) {
-    main_st.city = awq_get_coord_by_city(&awq_params, city, NOMINATIM_URL, 1);
+    float lat, lon;
+    main_st.city = awq_get_coord_by_city(&lat, &lon, city, NOMINATIM_URL, 1);
+
+    char buf[32] = {0};
+    snprintf(buf, sizeof(buf), "%f", lat);
+    awq_add_param(&awq_params, "latitude", buf);
+
+    memset(buf, 0, sizeof(buf));
+    snprintf(buf, sizeof(buf), "%f", lon);
+    awq_add_param(&awq_params, "longitude", buf);
+
     free(city);
   } else {
     awq_get_user_coord_params(&awq_params, IP_API_URL);
