@@ -167,6 +167,10 @@ void set_search_focus(Rectangle search_box, int *search_bar_focus, int *mouse_on
     *search_bar_focus = 0;
   }
 
+  if (*search_bar_focus && IsKeyPressed(KEY_ESCAPE)) {
+    *search_bar_focus = 0;
+  }
+
   return;
 }
 
@@ -181,7 +185,7 @@ void set_mouse_cursor(Rectangle search_box, int mouse_on_text) {
 
 int main() {
   InitWindow(WIN_WIDTH, WIN_HEIGHT, "Awqat GUI");
-  // SetExitKey(KEY_Q);
+  SetExitKey(KEY_NULL);
   SetTargetFPS(30);
 
   int mouse_on_text = 0;
