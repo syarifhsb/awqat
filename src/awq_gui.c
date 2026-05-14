@@ -26,6 +26,13 @@
 
 #define MAX_INPUT_CHARS 32
 
+typedef struct {
+  int show;
+  int frame_duration;
+  Nob_String_Builder message;
+} Notification;
+Notification notif = {0};
+
 void draw_location(const char *loc_name, float lat, float lon) {
   Vector2 loc = {
               ((lon + 180.0f + LON_OFFSET) / 360.0f * MAP_WIDTH),
@@ -87,13 +94,68 @@ void draw_search_bar(Vector2 pos, Vector2 box_size, float padding, float font_si
 
   if (search_bar_focus &&
       letter_count < MAX_INPUT_CHARS &&
-      ((frames_counter/20)%2) == 0)
+      ((frames_counter/20)%2) == 0) // Blink period every 40 frames
     snprintf(buf, sizeof(buf), "Search by city: %s|", city);
   else
     snprintf(buf, sizeof(buf), "Search by city: %s", city);
 
 
   DrawTextEx(default_font, buf, (Vector2)text_pos, font_size, 2, text_color);
+
+  return;
+}
+
+void destroy_notification(Notification *notif) {
+  notif->show = 0;
+  notif->frame_duration = 0;
+  nob_sb_free(notif->message);
+  notif->message = (Nob_String_Builder){0};
+
+  return;
+}
+
+void create_notification(Notification *notif, char *message, int frame_duration) {
+  if (notif->show) {
+    destroy_notification(notif);
+  }
+
+  nob_sb_append_cstr(&(notif->message), message);
+  nob_sb_append_null(&(notif->message));
+  notif->frame_duration = frame_duration;
+  notif->show = 1;
+
+  return;
+}
+
+void draw_notification(Notification *notif) {
+  if (!(notif->show)) return;
+
+  if (notif->frame_duration <= 0) {
+    destroy_notification(notif);
+    return;
+  }
+
+  int padding = 8;
+  Font default_font = GetFontDefault();
+
+  Rectangle box = {
+    10,
+    10,
+    500,
+    32,
+  };
+
+  Vector2 text_pos = { box.x + padding, box.y + padding };
+
+  DrawRectangleRec(box, (Color){ 0, 0, 0, 120 });
+  DrawRectangleLinesEx(box, 1.5f, BLACK);
+
+  char buf[256];
+  snprintf(buf, sizeof(buf), "%s", notif->message.items);
+
+  DrawTextEx(default_font, buf, (Vector2)text_pos, 16, 2, WHITE);
+
+  (notif->frame_duration)--;
 
   return;
 }
@@ -135,7 +197,13 @@ void launch_search(Main *main_st, float *lat, float *lon, Rectangle search_box, 
 
   *search_bar_focus = 0;
 
-  main_st->city = awq_get_coord_by_city(lat, lon, city, nominatim_url, 1);
+  int status = awq_get_coord_by_city(lat, lon, city, nominatim_url, &(main_st->city));
+
+  if (status == AWQ_FETCH_ERR_CITY_NOT_FOUND) {
+    char buf[256];
+    snprintf(buf, sizeof(buf), "City not found: %s",  city);
+    create_notification(&notif, buf, 120);
+  }
 
   Params awq_params = {0};
 
@@ -311,6 +379,7 @@ int main() {
         WHITE, city,
         search_bar_focus, frames_counter, letter_count);
 
+    draw_notification(&notif);
     draw_location(main_st.city.items, lat, lon);
 
     EndDrawing();

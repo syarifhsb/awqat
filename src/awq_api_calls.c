@@ -3,6 +3,7 @@
 #include "cJSON.h"
 #include "time.h"
 #include "json.h"
+#include "awq_api_calls.h"
 
 #define NOB_UNSTRIP_PREFIX
 #include "../nob.h"
@@ -151,7 +152,7 @@ int awq_get_location_name(float lat, float lon, const char *nominatim_url, Nob_S
   return 1;
 }
 
-Nob_String_Builder awq_get_coord_by_city(float *lat, float *lon, const char *city, const char *nominatim_url, int return_city_sb) {
+int awq_get_coord_by_city(float *lat, float *lon, const char *city, const char *nominatim_url, Nob_String_Builder *return_city_sb) {
   Params nominatim_params = {0};
 
   awq_add_param(&nominatim_params, "city", city);
@@ -165,8 +166,8 @@ Nob_String_Builder awq_get_coord_by_city(float *lat, float *lon, const char *cit
       &resp);
 
   if (result != CURLE_OK) {
-      fprintf(stderr, "Error: failed to fetch Geolocation API\n");
-      exit(EXIT_FAILURE);
+    fprintf(stderr, "Error: failed to fetch Geolocation API\n");
+    return AWQ_FETCH_ERR_CURL;
   }
 
   awq_delete_params(&nominatim_params);
@@ -176,9 +177,8 @@ Nob_String_Builder awq_get_coord_by_city(float *lat, float *lon, const char *cit
 
   cJSON *data = cJSON_GetArrayItem(return_json, 0);
   if (!data) {
-    fprintf(stderr, "Error: Could not find city: %s\n", city);
-    // TODO: GUI Do not exit.
-    exit(EXIT_FAILURE);
+    // fprintf(stderr, "Error: Could not find city: %s\n", city);
+    return AWQ_FETCH_ERR_CITY_NOT_FOUND;
   }
 
   cJSON *latitude = cJSON_GetObjectItem(data, "lat");
@@ -187,14 +187,14 @@ Nob_String_Builder awq_get_coord_by_city(float *lat, float *lon, const char *cit
   awq_string_to_float(latitude->valuestring, lat);
   awq_string_to_float(longitude->valuestring, lon);
 
-  Nob_String_Builder ret_sb = {0};
-  if (return_city_sb) {
-    cJSON *city = cJSON_GetObjectItem(data, "name");
-    nob_sb_append_cstr(&ret_sb, city->valuestring);
-    nob_sb_append_null(&ret_sb);
-  }
+  cJSON *city_json = cJSON_GetObjectItem(data, "name");
+
+  nob_sb_free(*return_city_sb);
+  *return_city_sb = (Nob_String_Builder){0};
+  nob_sb_append_cstr(return_city_sb, city_json->valuestring);
+  nob_sb_append_null(return_city_sb);
 
   cJSON_Delete(return_json);
 
-  return ret_sb;
+  return 0;
 }

@@ -187,7 +187,13 @@ int main(int argc, char *argv[]) {
 
   if (city) {
     float lat, lon;
-    main_st.city = awq_get_coord_by_city(&lat, &lon, city, NOMINATIM_URL, 1);
+    int status;
+    status = awq_get_coord_by_city(&lat, &lon, city, NOMINATIM_URL, &(main_st.city));
+
+  if (status == AWQ_FETCH_ERR_CITY_NOT_FOUND) {
+      fprintf(stderr, "Could not find city: %s\n", city);
+      exit(EXIT_FAILURE);
+  }
 
     char buf[32] = {0};
     snprintf(buf, sizeof(buf), "%f", lat);
