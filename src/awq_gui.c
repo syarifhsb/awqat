@@ -38,15 +38,24 @@ void draw_location(const char *loc_name, float lat, float lon) {
               ((lon + 180.0f + LON_OFFSET) / 360.0f * MAP_WIDTH),
               ((90.0f - lat + LAT_OFFSET) / 180.0f * MAP_HEIGHT)};
 
-  Vector2 loc_text_offset = {7.0, -11.0};
+  Vector2 loc_text_offset = {7.0, -16.0};
   float font_size = 14.0;
 
   DrawCircleV(loc, 3.5f, BLACK);
   DrawCircleV(loc, 2.5f, GOLD);
-  DrawText(loc_name,
-      loc.x + loc_text_offset.x,
-      loc.y + loc_text_offset.y,
-      font_size, BLACK);
+
+  int text_length = MeasureText(loc_name, font_size);
+
+  if ((loc.x + text_length) > WIN_WIDTH)
+    DrawText(loc_name,
+        WIN_WIDTH - text_length - loc_text_offset.x,
+        loc.y + loc_text_offset.y,
+        font_size, BLACK);
+  else
+    DrawText(loc_name,
+        loc.x + loc_text_offset.x,
+        loc.y + loc_text_offset.y,
+        font_size, BLACK);
 
   return;
 }
