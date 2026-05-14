@@ -183,7 +183,7 @@ int awq_get_coord_by_city(float *lat, float *lon, const char *city, const char *
 
   cJSON *data = cJSON_GetArrayItem(return_json, 0);
   if (!data) {
-    // fprintf(stderr, "Error: Could not find city: %s\n", city);
+    cJSON_Delete(return_json);
     return AWQ_FETCH_ERR_CITY_NOT_FOUND;
   }
 
