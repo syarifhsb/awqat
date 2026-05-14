@@ -155,9 +155,15 @@ int awq_get_location_name(float lat, float lon, const char *nominatim_url, Nob_S
 int awq_get_coord_by_city(float *lat, float *lon, const char *city, const char *nominatim_url, Nob_String_Builder *return_city_sb) {
   Params nominatim_params = {0};
 
-  awq_add_param(&nominatim_params, "city", city);
+  char *city_escaped = curl_easy_escape(NULL, city, 0);
+  awq_add_param(&nominatim_params, "city", city_escaped);
   awq_add_param(&nominatim_params, "format", "json");
   awq_add_param(&nominatim_params, "limit", "1");
+
+  // TODO: use user Locale
+  awq_add_param(&nominatim_params, "accept-language", "en-US");
+
+  free(city_escaped);
 
   Nob_String_Builder resp = {0};
   int result = awq_fetch(nominatim_url,
